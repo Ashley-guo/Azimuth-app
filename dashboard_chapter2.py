@@ -485,15 +485,12 @@ with st.sidebar:
 
 @st.cache_data
 def load_venue_data():
-    pe = pd.read_csv("past_event.csv")
-    ss = pd.read_csv("state_summary.csv")
-    pe["venue_name"] = pe["venue_name"].fillna("").astype(str)
-    return pe, ss
+    df = pd.read_csv("underused_venues.csv")
+    df["name"] = df["name"].fillna("").astype(str)
+    return df
 
-pe_df, ss_df = load_venue_data()
-one_show_total = int(ss_df["one_show_venues"].sum())
-
-_under = pe_df[(pe_df["total_events"] >= 1) & (pe_df["total_events"] <= 20)].copy()
+venue_df = load_venue_data()
+total_underused = len(venue_df)
 
 def _categorize_venue(name):
     n = name.lower()
@@ -558,9 +555,11 @@ def _categorize_venue(name):
         return "Traditional Venues"
     return "Other"
 
-_under["category"] = _under["venue_name"].apply(_categorize_venue)
-_cat_counts = _under["category"].value_counts()
+venue_df = venue_df.copy()
+venue_df["category"] = venue_df["name"].apply(_categorize_venue)
+_cat_counts = venue_df["category"].value_counts()
 civic_count = int(_cat_counts.get("Civic/Municipal", 0))
+traditional_count = int(_cat_counts.get("Traditional Venues", 0))
 
 
 # ── Sub-section 2: The Other Half ──────────────────────────────────────────────
@@ -588,14 +587,14 @@ st.markdown(f"""
 # ── Venue KPI row ──────────────────────────────────────────────────────────────
 
 vk1, vk2, vk3 = st.columns(3)
-vk1.markdown(kpi("96,982",
-                 "Underutilized Venues Nationwide<br>(Fewer Than 20 Shows in Dataset)",
+vk1.markdown(kpi(f"{total_underused:,}",
+                 "Underutilized Venues Nationwide<br>(Catalogued in Dataset)",
                  "#fb923c"), unsafe_allow_html=True)
 vk2.markdown(kpi(f"{civic_count:,}",
                  "Civic &amp; Municipal Venues<br>Among the Underutilized",
                  "#a78bfa"), unsafe_allow_html=True)
-vk3.markdown(kpi(f"{one_show_total:,}",
-                 "Venues That Have Hosted<br>Only 1 Show Ever",
+vk3.markdown(kpi(f"{traditional_count:,}",
+                 "Traditional Venues (Clubs &amp; Theaters)<br>Left Dark",
                  "#38bdf8"), unsafe_allow_html=True)
 
 st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
@@ -633,7 +632,7 @@ donut_fig = go.Figure(go.Pie(
 
 donut_fig.add_annotation(
     text=(
-        "<b>96,982</b><br>"
+        f"<b>{total_underused:,}</b><br>"
         "<span style='font-size:10px;color:#64748b;'>underutilized</span><br>"
         "<span style='font-size:10px;color:#64748b;'>venues</span>"
     ),
@@ -646,7 +645,7 @@ donut_fig.update_layout(
     title=dict(
         text=(
             "<b style='color:#e2e8f0;font-size:15px;'>Stages Already Built — Rarely Used</b><br>"
-            "<span style='color:#4b5675;font-size:11px;'>Venues with 1–20 shows in dataset</span>"
+            "<span style='color:#4b5675;font-size:11px;'>Underutilized venues catalogued nationwide</span>"
         ),
         x=0.0,
         font=dict(family="Inter, sans-serif"),
@@ -714,8 +713,8 @@ with col_insight:
 
       <hr style='border:none;border-top:1px solid #1e2535;margin:0 0 14px;'>
       <p style='color:#6b7a99;font-size:0.8rem;margin:0;line-height:1.6;'>
-        <b style='color:#94a3b8;'>{one_show_total:,}</b> of these venues have hosted
-        exactly one show — not a lack of capacity, a lack of connection.
+        <b style='color:#94a3b8;'>{traditional_count:,}</b> traditional clubs and theaters
+        are sitting dark — venues with stages, sound systems, and zero consistent programming.
         The bottleneck is discovery and coordination, not supply.
       </p>
     </div>
@@ -723,7 +722,6 @@ with col_insight:
 
 
 # ── Closing ────────────────────────────────────────────────────────────────────
-
 st.markdown(f"""
 <div style='margin-top:32px;margin-bottom:12px;padding:24px 28px;
             background:#12161f;border:1px solid #1e2535;border-radius:12px;
@@ -736,7 +734,7 @@ st.markdown(f"""
   <p style='color:#64748b;font-size:0.88rem;line-height:1.65;margin:0;'>
     Two problems, one platform.
     <b style='color:#fb923c;'>{n_opp} mid-tier artists</b> with audiences and empty calendars.
-    <b style='color:#a78bfa;'>96,982 stages</b> with capacity and no booking pipeline.
+    <b style='color:#a78bfa;'>{total_underused:,} stages</b> with capacity and no booking pipeline.
     Azimuth is the intelligence layer that turns both into revenue —
     and the opportunity is hiding in plain sight.
   </p>
